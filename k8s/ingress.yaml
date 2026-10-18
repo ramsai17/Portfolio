@@ -1,0 +1,18 @@
+# Optional: enable this only after installing an Ingress controller.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: devops-portfolio
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: portfolio.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: devops-portfolio
+                port:
+                  number: 80
