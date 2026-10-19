@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = 'YOUR_DOCKERHUB_USERNAME/devops-portfolio'
+        DOCKER_IMAGE = 'ramsai333/my-portfolio'
     }
 
     options {
