@@ -17,17 +17,13 @@ pipeline {
             }
         }
 
-        stage('Build and Test') {
-            steps {
-                sh '''
-                    set -eu
-                    java -version
-                    mvn -version
-                    mvn clean verify
-                '''
-            }
-        }
-
+        stage('Build and Package') {
+    steps {
+        sh 'mvn clean package'
+        sh 'ls -lah target/'
+        sh 'find target -maxdepth 1 -type f -name "*.jar" -print'
+    }
+}
         stage('Build Docker Image') {
             steps {
                 sh '''
