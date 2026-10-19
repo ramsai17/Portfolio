@@ -1,43 +1,79 @@
 pipeline {
-  agent any
-  tools {
-    maven 'Maven3'
-    jdk 'JDK17'
-  }
-  environment {
-    IMAGE_NAME = 'devops-portfolio'
-    // Configure these in Jenkins or replace with your registry details.
-    REGISTRY = 'docker.io'
-    IMAGE_TAG = "${BUILD_NUMBER}"
-  }
-  stages {
-    stage('Checkout') {
-      steps { checkout scm }
+    agent any
+
+    environment {
+        DOCKER_IMAGE = 'YOUR_DOCKERHUB_USERNAME/devops-portfolio'
     }
-    stage('Build & Test') {
-      steps { sh 'mvn -B clean verify' }
-      post { always { junit allowEmptyResults: true, testResults: 'target/surefire-reports/*.xml' } }
+
+    options {
+        timestamps()
+        disableConcurrentBuilds()
     }
-    stage('Build Container') {
-      steps { sh 'docker build -t $IMAGE_NAME:$IMAGE_TAG .' }
-    }
-    stage('Publish Container') {
-      when { expression { return env.BRANCH_NAME == 'main' || env.BRANCH_NAME == 'master' } }
-      steps {
-        withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-          sh '''
-            echo "$DOCKER_PASS" | docker login "$REGISTRY" -u "$DOCKER_USER" --password-stdin
-            docker tag "$IMAGE_NAME:$IMAGE_TAG" "$DOCKER_USER/$IMAGE_NAME:$IMAGE_TAG"
-            docker tag "$IMAGE_NAME:$IMAGE_TAG" "$DOCKER_USER/$IMAGE_NAME:latest"
-            docker push "$DOCKER_USER/$IMAGE_NAME:$IMAGE_TAG"
-            docker push "$DOCKER_USER/$IMAGE_NAME:latest"
-            docker logout "$REGISTRY"
-          '''
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
         }
-      }
+
+        stage('Build and Test') {
+            steps {
+                sh '''
+                    set -eu
+                    java -version
+                    mvn -version
+                    mvn clean verify
+                '''
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh '''
+                    set -eu
+                    docker build \
+                      -t "$DOCKER_IMAGE:$BUILD_NUMBER" \
+                      -t "$DOCKER_IMAGE:latest" .
+                '''
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            steps {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub-credentials',
+                        usernameVariable: 'DOCKERHUB_USER',
+                        passwordVariable: 'DOCKERHUB_TOKEN'
+                    )
+                ]) {
+                    sh '''
+                        set -eu
+                        echo "$DOCKERHUB_TOKEN" |
+                          docker login \
+                            --username "$DOCKERHUB_USER" \
+                            --password-stdin
+
+                        docker push "$DOCKER_IMAGE:$BUILD_NUMBER"
+                        docker push "$DOCKER_IMAGE:latest"
+                    '''
+                }
+            }
+            post {
+                always {
+                    sh 'docker logout || true'
+                }
+            }
+        }
     }
-  }
-  post {
-    always { sh 'docker image prune -f || true' }
-  }
+
+    post {
+        success {
+            echo 'Build and tests passed. Docker image pushed. No deployment performed.'
+        }
+        failure {
+            echo 'Pipeline failed. Check Console Output for the error.'
+        }
+    }
 }
