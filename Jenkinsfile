@@ -24,7 +24,7 @@ pipeline {
         sh 'find target -maxdepth 1 -type f -name "*.jar" -print'
     }
 }
-        tage('Build Docker Image') {
+        stage('Build Docker Image') {
     steps {
         sh '''
             ls -lah target/
