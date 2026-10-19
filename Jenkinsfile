@@ -24,17 +24,16 @@ pipeline {
         sh 'find target -maxdepth 1 -type f -name "*.jar" -print'
     }
 }
-        stage('Build Docker Image') {
-            steps {
-                sh '''
-                    set -eu
-                    docker build \
-                      -t "$DOCKER_IMAGE:$BUILD_NUMBER" \
-                      -t "$DOCKER_IMAGE:latest" .
-                '''
-            }
-        }
-
+        tage('Build Docker Image') {
+    steps {
+        sh '''
+            ls -lah target/
+            docker build \
+              -t ramsai333/my-portfolio:${BUILD_NUMBER} \
+              -t ramsai333/my-portfolio:latest .
+        '''
+    }
+}
         stage('Push to Docker Hub') {
             steps {
                 withCredentials([
